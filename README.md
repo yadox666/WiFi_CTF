@@ -23,6 +23,7 @@ CTF name:
 ---------
     * "Disarm the bomb!"
 
+![Image of the bomb for MHD17. :(](images/IMG_20170331_202744.jpg "CTF Disarm the bomb")
 
 CTF  knowledge requirements:
 ----------------------------
