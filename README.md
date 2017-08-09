@@ -1,16 +1,5 @@
- __          ___        ______ _    _____ _______ ______ 
- \ \        / (_)      |  ____(_)  / ____|__   __|  ____|
-  \ \  /\  / / _ ______| |__   _  | |       | |  | |__   
-   \ \/  \/ / | |______|  __| | | | |       | |  |  __|  
-    \  /\  /  | |      | |    | | | |____   | |  | |     
-     \/  \/   |_|      |_|    |_|| \_____|  |_|  |_|     
-   __ _  ___ _ __   ___ _ __ __ _| |_ ___  _ __          
-  / _` |/ _ \ '_ \ / _ \ '__/ _` | __/ _ \| '__|         
- | (_| |  __/ | | |  __/ | | (_| | || (_) | |            
-  \__, |\___|_| |_|\___|_|  \__,_|\__\___/|_|            
-   __/ |                                                 
-  |___/                                                  
-
+Wi-Fi CTF Generator
+-------------------
 Author:  Yago F. Hansen (2017)
 
 Description:
@@ -84,26 +73,26 @@ Create a file with name ctf.conf in the same directory as the python script,
 including a command on each line. If the line is empty or begins with "#" 
 character it will be ignored. The following commands are accepted:
 
-## Injection pattern to define by user (secuential run):
-##                     ctf(n): CTF duration in seconds - Should be first parameter
-##                     bcn(ssid): send beacons with ssid
-##                     prb(ssid): send probe requests with ssid 
-##                     prr(ssid): send probe response from ssid 
-##                     aut(ssid): send authentication request to dst
-##                     ass(ssid): send association request to dst
-##                     dea(ssid): send deauthentication to dst 
-##                     pay(b64:payload): include payload in packets (optionally encode base64)
-##                     sec(wpa): change security to WPA (OPN,WEP,WPA,WPA2,EAP), 
-##                     cnt(n): next command will send n packets, 
-##                     chn(n): set channel to n 
-##                     src(mac): new_source (mac), 
-##                     dst(mac): new_destination (mac), 
-##                     gpo(n-1): set extra gpio n to 1 or 0
-##                     snf(payload): Sniff for a probe request with payload to disarm bomb
-##                     slp(n): sleep n seconds,
-##                     wai(min): continue when elapsed n minutes from ctf start
-##                     rpt(n): repeat n times previous commands
-##                     ext(): exit application
+Injection pattern to define by user (secuential run):
+                     ctf(n): CTF duration in seconds - Should be first parameter
+                     bcn(ssid): send beacons with ssid
+                     prb(ssid): send probe requests with ssid 
+                     prr(ssid): send probe response from ssid 
+                     aut(ssid): send authentication request to dst
+                     ass(ssid): send association request to dst
+                     dea(ssid): send deauthentication to dst 
+                     pay(b64:payload): include payload in packets (optionally encode base64)
+                     sec(wpa): change security to WPA (OPN,WEP,WPA,WPA2,EAP), 
+                     cnt(n): next command will send n packets, 
+                     chn(n): set channel to n 
+                     src(mac): new_source (mac), 
+                     dst(mac): new_destination (mac), 
+                     gpo(n-1): set extra gpio n to 1 or 0
+                     snf(payload): Sniff for a probe request with payload to disarm bomb
+                     slp(n): sleep n seconds,
+                     wai(min): continue when elapsed n minutes from ctf start
+                     rpt(n): repeat n times previous commands
+                     ext(): exit application
 
 Configure the time of the CTF game, using the following var in the python script (in seconds):
 	ctftime=n
@@ -116,26 +105,28 @@ please revise the syslog file of the raspberry pi.
 
 
 
-# ctf.conf Example:
-# -----------------
-ctf(3600)
-snf(DisarmITn0w!!!)
-cnt(100)
-sec(OPEN)
-bcn(yadox)
-slp(4)
-prb(yadox)
-slp(1)
-cnt(50)
-bcn(test)
-cnt(10)
-prb(test)
-rpt(0)
+ctf.conf Example:
+-----------------
+
+	ctf(3600)
+	snf(DisarmITn0w!!!)
+	cnt(100)
+	sec(OPEN)
+	bcn(yadox)
+	slp(4)
+	prb(yadox)
+	slp(1)
+	cnt(50)
+	bcn(test)
+	cnt(10)
+	prb(test)
+	rpt(0)
 
 
 Configuration of GPIO ports used in examples:
-(BCM Port number / Not Raspberry printed ports)
 -----------------------------------------------
+(BCM Port number / Not Raspberry printed ports)
+
 gpioled = 6  ## GPIO port number for Status LED
 gpiosend = 5  ## GPIO port number for LED when sending packets
 gpioflash = 24  ## GPIO port number for white LED as camera flash
