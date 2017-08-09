@@ -1,0 +1,76 @@
+==========================================================
+      ▌ ▌▗   ▛▀▘▗     ▞▀▖       ▐      ▛▀▘ 
+      ▌▖▌▄   ▙▄ ▄     ▌         ▜▀     ▙▄  
+      ▙▚▌▐ ▄ ▌  ▐     ▌ ▖apture ▐ ▖he  ▌ lag
+      ▘ ▘▀   ▘  ▀     ▝▀         ▀     ▘    
+      Wi-Fi (802.11) CTF GENERATOR SCRIPTING LANGUAGE
+==========================================================
+
+DEBUG:root:Operating System: Linux
+DEBUG:root:You are running this script as root!
+DEBUG:root:Wi-Fi nterface to use: wlan1
+DEBUG:root:WiFi interface mon1 exists! Deleting it!
+DEBUG:root:Creating monitor VAP mon1 for parent wlan1...
+DEBUG:root:Actual wlan1 MAC Address: 00:E1:B0:35:82:94
+DEBUG:root:Start sniffing data with interface mon1
+DEBUG:root:Fixing CTF duration to: 0:05:00
+DEBUG:root:Starting CTF execution at: 2017-03-30 00:53:17.171931
+DEBUG:root:Starting LCD countdown timer: 0:05:00
+DEBUG:root:[0:05:00] Changing ProbeReq disarm payload to:DisarmITn0w!!!
+DEBUG:root:[0:05:00] Changing ap security to:wpa
+DEBUG:root:[0:05:00] Setting mon1 to channel: 4 (2422 MHz)
+DEBUG:root:[0:05:00] Changing number of packets to send to:30
+DEBUG:root:[0:05:00] Sleeping 10 seconds...
+DEBUG:root:[0:04:50] Changing payload to V2VsY29tZSB0byBXaS1GaSBDVEYhISE= base64(Welcome to Wi-Fi CTF!!!)
+DEBUG:root:[0:04:50] Sending 30 probe requests to SSID:Wi-Fi CTF Bomb!!! CHAN:4 (2427 MHz) from MAC:FF:FF:FF:FF:FF:FF
+DEBUG:root:[0:04:47] Sleeping 10 seconds...
+DEBUG:root:[0:04:37] Changing payload to bGVuZmxhZz0xMg== base64(lenflag=12)
+DEBUG:root:[0:04:37] Sending 30 probe requests to SSID:WiFi CTF Bomb!!! CHAN:4 (2427 MHz) from MAC:FF:FF:FF:FF:FF:FF
+DEBUG:root:[0:04:33] Sleeping 10 seconds...
+DEBUG:root:[0:04:23] Setting mon1 to channel: 8 (2427 MHz)
+DEBUG:root:[0:04:23] Changing number of packets to send to:10
+DEBUG:root:[0:04:23] Changing payload to b3Jka2V5WzBdPTY3 base64(ordkey[0]=67)
+DEBUG:root:[0:04:23] Sending 10 probe requests to SSID:Wi-Fi CTF Bomb!!! CHAN:8 (2447 MHz) from MAC:FF:FF:FF:FF:FF:FF
+DEBUG:root:[0:04:22] Sleeping 10 seconds...
+DEBUG:root:[0:04:12] Changing payload to b3Jka2V5WzFdPTg0 base64(ordkey[1]=84)
+DEBUG:root:[0:04:12] Sending 10 probe requests to SSID:Wi-Fi CTF Bomb!!! CHAN:8 (2447 MHz) from MAC:FF:FF:FF:FF:FF:FF
+DEBUG:root:[0:04:11] Sleeping 10 seconds...
+DEBUG:root:[0:04:01] Changing payload to b3Jka2V5WzJdPTcw base64(ordkey[2]=70)
+DEBUG:root:[0:04:01] Sending 10 beacons with SSID:Wi-Fi CTF Bomb!!! (wpa) CHAN:8 (2447 MHz) BSSID:4D:B6:F9:13:C3:59
+DEBUG:root:[0:04:00] Sleeping 10 seconds...
+DEBUG:root:[0:03:50] Changing payload to b3Jka2V5WzNdPTgy base64(ordkey[3]=82)
+DEBUG:root:[0:03:49] Sending 10 probe requests to SSID:Wi-Fi CTF Bomb!!! CHAN:8 (2447 MHz) from MAC:FF:FF:FF:FF:FF:FF
+DEBUG:root:[0:03:48] Sleeping 10 seconds...
+DEBUG:root:[0:03:38] Changing payload to b3Jka2V5WzRdPTQ4 base64(ordkey[4]=48)
+DEBUG:root:[0:03:38] Sending 10 beacons with SSID:Wi-Fi CTF Bomb!!! (wpa) CHAN:8 (2447 MHz) BSSID:ED:EE:71:88:E5:95
+DEBUG:root:[0:03:37] Sleeping 10 seconds...
+DEBUG:root:[0:03:27] Changing payload to b3Jka2V5WzVdPTk5 base64(ordkey[5]=99)
+DEBUG:root:[0:03:27] Sending 10 probe requests to SSID:Wi-Fi CTF Bomb!!! CHAN:8 (2447 MHz) from MAC:FF:FF:FF:FF:FF:FF
+DEBUG:root:[0:03:26] Sleeping 10 seconds...
+DEBUG:root:[0:03:16] Changing payload to b3Jka2V5WzZdPTEwNw== base64(ordkey[6]=107)
+DEBUG:root:[0:03:16] Sending 10 beacons with SSID:Wi-Fi CTF Bomb!!! (wpa) CHAN:8 (2447 MHz) BSSID:6C:F8:6C:11:91:7E
+DEBUG:root:[0:03:15] Sleeping 10 seconds...
+DEBUG:root:[0:03:05] Changing payload to aGV4b3Jka2V5WzddPTB4NzM= base64(hexordkey[7]=0x73)
+DEBUG:root:[0:03:05] Sending 10 probe requests to SSID:Wi-Fi CTF Bomb!!! CHAN:8 (2447 MHz) from MAC:FF:FF:FF:FF:FF:FF
+DEBUG:root:[0:03:03] Sleeping 10 seconds...
+DEBUG:root:[0:02:53] Changing payload to aGV4b3Jka2V5WzhdPTB4MjM= base64(hexordkey[8]=0x23)
+DEBUG:root:[0:02:53] Sending 10 beacons with SSID:Wi-Fi CTF Bomb!!! (wpa) CHAN:8 (2447 MHz) BSSID:5E:5B:1D:9D:D9:61
+DEBUG:root:[0:02:52] Sleeping 10 seconds...
+DEBUG:root:[0:02:42] Changing payload to aGV4b3Jka2V5WzldPTB4MjE= base64(hexordkey[9]=0x21)
+DEBUG:root:[0:02:42] Sending 10 probe requests to SSID:Wi-Fi CTF Bomb!!! CHAN:8 (2447 MHz) from MAC:FF:FF:FF:FF:FF:FF
+DEBUG:root:[0:02:41] Sleeping 10 seconds...
+DEBUG:root:[0:02:31] Setting mon1 to channel: 12 (2447 MHz)
+DEBUG:root:[0:02:31] Changing payload to aGV4b3Jka2V5WzEwXT0weDIx base64(hexordkey[10]=0x21)
+DEBUG:root:[0:02:31] Sending 10 beacons with SSID:Wi-Fi CTF Bomb!!! (wpa) CHAN:12 (2467 MHz) BSSID:09:D2:1F:3E:C0:93
+DEBUG:root:[0:02:29] Sleeping 10 seconds...
+DEBUG:root:[0:02:19] Changing payload to TGFzdCBDaGFyYWN0ZXIgaXMgVQ== base64(Last Character is U)
+DEBUG:root:[0:02:19] Sending 10 probe requests to SSID:Wi-Fi CTF Bomb!!! CHAN:12 (2467 MHz) from MAC:FF:FF:FF:FF:FF:FF
+DEBUG:root:[0:02:18] Sleeping 10 seconds...
+DEBUG:root:[0:02:08] Changing payload to WW91IGNhbiB0cnkgdG8gY3V0IHRoZSBjYWJsZSB3aXRoIGNvbG9yOiMwMGZmMDA= base64(You can try to cut the cable with color:#00ff00)
+DEBUG:root:[0:02:08] Sending 10 beacons with SSID:Wi-Fi CTF Bomb!!! (wpa) CHAN:12 (2467 MHz) BSSID:C7:31:6F:46:0B:4A
+DEBUG:root:Fixing CTF duration to: 0:05:00
+DEBUG:root:Starting CTF execution at: 2017-03-30 00:56:10.492342
+DEBUG:root:Starting LCD countdown timer: 0:05:00
+ERROR:root:Cannot parse command. 'module' object has no attribute 'Pkill'
+DEBUG:root:[0:05:00] Changing ProbeReq disarm payload to:DisarmITn0w!!!
+DEBUG:root:Ending execution!g ap security to:wpa

@@ -1,0 +1,8 @@
+* CTF Time configured in ctf.conf
+* Orange led has to be more time on. On receive, blink once!
+* Show the winner MAC address in lcd
+* Picamera stability issues. Subproccesses.
+* Arm bomb by WiFi
+* Include Data Packets
+* Another way to disarm the bomb could be, after sending the necessary clues to the players, connect to
+  the HotSpot created, entering to the captive portal and answering some questions to finally diarm it.

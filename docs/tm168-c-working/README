@@ -1,0 +1,1 @@
+gcc -std=c99 clk.c -o clk -lbcm2835 -ltm1638

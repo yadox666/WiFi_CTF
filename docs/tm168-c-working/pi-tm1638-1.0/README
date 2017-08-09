@@ -1,0 +1,11 @@
+A simple interface to the TM1638 based displays for the Raspberry Pi.
+
+Dealextreme, doubtless amongst others, sell small boards with eight
+seven-segment displays, eight red-green LEDs and eight push buttons
+for less than $10.
+
+The boards are basically just the LEDs and switches, and a TM1638
+driver chip. This sits on a two-wire serial bus which makes it
+fairly easy to connect the boards to a computer/microcontroller of
+your choice. Of course, one needs a little bit of software. This is
+such a library for the Raspberry Pi.
