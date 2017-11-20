@@ -49,6 +49,7 @@ gpiobuzzer = 18  ## GPIO port number for a buzzer
 # Default system variables
 ctftime=3600  ## Default CTF duration in seconds
 disarmpayload='DisarmITn0w!!!'  ## Disarm the bomb sending various Probe Request packets with this SSID
+activatepayload='HelloBomb!'  ## Disarm the bomb sending various Probe Request packets with this SSID
 apsecurity = 'OPEN'  ## open, wep, wpa, wpa2
 ssid = 'CTF!!!'  ## default SSID to use
 count = 100  ## Default number of packets to send
@@ -65,6 +66,8 @@ gpiodisarmnc = 1  ## Disarm mechanism Normally open (0) or normally closed (1)
 payload_ie = 221  ## 802.11 Element ID to include payload
 payload_preffix = 'CTF'  ## When using element ID 221 the first 3 bytes are for the manuf OUI
 closing = 0
+activate = 0
+wfp = 0
 intfmon=''
 winner=''
 ctfstart=int(time.time())
@@ -94,7 +97,7 @@ def stoptimers(reason=0):
 
 
 def PacketHandler(pkt):
-    global winner
+    global winner, activate, activatepayload, wfp
     sta = pkt.addr2.upper()
     ssid = pkt.info
     if ssid == disarmpayload:
@@ -104,6 +107,9 @@ def PacketHandler(pkt):
 	winner=sta.translate(None, ':')
 	timer.disarm_bomb()
         if ret: sled.on()
+    elif ssid == activatepayload and not activate and wfp:
+	logging.debug("Received Probe Request packet from station %s with payload: %s. Activating bomb!" %(sta,ssid))
+	activate = 1
 
 
 class Sniffer(Thread):  # Scapy sniffer thread
@@ -517,7 +523,7 @@ class Scapy80211():
 
 
 def executecommand(command, value):
-    global ctftime, ctfstart, count, src, dst, ssid, channel, apsecurity, payload, closing, disarmpayload, lcd
+    global ctftime, ctfstart, count, src, dst, ssid, channel, apsecurity, payload, closing, disarmpayload, activate, wfp, activatepayload, lcd
     try:
 	if closing:
 	    return
@@ -560,6 +566,12 @@ def executecommand(command, value):
         elif command == "snf":
             disarmpayload = value
             if verbose >= 1: logging.debug('[%s] Setting ProbeReq disarm payload to:%s' %(timeformat(timeleft()),disarmpayload))
+        elif command == "wfp":
+            activatepayload = value
+	    wfp = 1
+            if verbose >= 1: logging.debug('[%s] Waiting for activation payload:%s' %(timeformat(timeleft()),activatepayload))
+	    while not activate and not closing:
+                time.sleep(3)
         elif command == "pay":
 	    if value[:3] == 'b64':
 		payload_plain = value[4:]
@@ -770,6 +782,7 @@ if __name__ == "__main__":
 		    lpattern1.append(command + '(' + value + ')') 
             index1 += 1
 
+	print
 	tl = timeleft()
         while timeleft() > -5 and not closing:
             time.sleep(5)
