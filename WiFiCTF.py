@@ -2,26 +2,40 @@
 # -*- coding: utf-8 -*-​
 __version__ = '0.2'
 
-import fcntl
-import sys, os, time
-import base64
-from datetime import datetime
-from random import randint
-from platform import system
-from threading import Thread, Lock
-import logging, time, socket
-from subprocess import Popen, PIPE
-from gpiozero import LED,Button,Buzzer,OutputDevice
-from signal import SIGINT,signal
-logging.basicConfig(level=logging.DEBUG)
-logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
-from scapy.all import *
+try:
+    import fcntl
+    import sys, os, time
+    import base64
+    from nop import NOP
+    from datetime import datetime
+    from random import randint
+    from platform import system
+    from threading import Thread, Lock
+    import logging, time, socket
+    from subprocess import Popen, PIPE
+    from signal import SIGINT,signal
+    logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+    from scapy.all import *
+except:
+    print "Cannot import required package! Pip install it! %s"  %e.message
+    exit()
 
 # user defined variables
 verbose = 1  ## verbosity level (0-3)
-# interface = 'wlan1'  ## Wi-Fi interface/s ['wlan1','wlan2']
-interface = open('/tmp/wifi').readlines()[0].rstrip('\n')  ## Wi-Fi interface/s ['wlan1','wlan2']
+interface = 'wlan6' ## Wi-Fi interface/s ['wlan1','wlan2']
 channel = 3  ## Channel to use by default
+savecap=1  ## will save captured packets from attack
+capfile='./ctf_sentpkts.cap' ## directory and file name to save captured packets
+
+# Hardware devices configuration
+countdownhdmi=0 ## If 1 it will display a countdown full screen in HDMI connector
+countdownlcd=0 ## If 1 it will display a countdown full screen
+gpioctrl = 0 ## GPIO control on / off
+camera_on=0
+
+imagedir='./images'
+gpiobase = '/sys/class/gpio'
 gpioled = 6  ## GPIO port number for Status led
 gpiosend = 5  ## GPIO port number when sending packets
 gpioflash = 24  ## GPIO port number for white led as camera flash
@@ -31,23 +45,19 @@ gpioexplode = 9  ## GPIO port to connect explode mechanism for cartridge
 gpioexplode2 = 10  ## GPIO port to connect explode mechanism for second cartridge
 gpioext = 11  ## GPIO port number to external peripheral
 gpiobuzzer = 18  ## GPIO port number for a buzzer
-countdownhdmi=0 ## If 1 it will display a countdown full screen in HDMI connector
-countdownlcd=1 ## If 1 it will display a countdown full screen
-savecap=1  ## will save captured packets from attack
 
-# system variables
+# Default system variables
 ctftime=3600  ## Default CTF duration in seconds
+disarmpayload='DisarmITn0w!!!'  ## Disarm the bomb sending various Probe Request packets with this SSID
 apsecurity = 'OPEN'  ## open, wep, wpa, wpa2
 ssid = 'CTF!!!'  ## default SSID to use
 count = 100  ## Default number of packets to send
-disarmpayload='DisarmITn0w!!!'  ## Disarm the bomb sending various Probe Request packets with this SSID
 src = RandMAC()  ## source ip from packets
 dst = 'ff:ff:ff:ff:ff:ff'  ## Destination address for beacons and probes
 broadcast = 'ff:ff:ff:ff:ff:ff'  ## Destination address for beacons and probes
 sc = randint(1, 4096)
 payload = ''
 frequency = ''
-gpiobase = '/sys/class/gpio'
 lock = Lock()
 DN = open(os.devnull, 'w')
 gpioarmnc = 1  ## Arm mechanism is normally open (0) or normally closed (1)
@@ -55,17 +65,13 @@ gpiodisarmnc = 1  ## Disarm mechanism Normally open (0) or normally closed (1)
 payload_ie = 221  ## 802.11 Element ID to include payload
 payload_preffix = 'CTF'  ## When using element ID 221 the first 3 bytes are for the manuf OUI
 closing = 0
-imagedir='./images'
-camera_on=0
 intfmon=''
 winner=''
 ctfstart=int(time.time())
 lcd = None
-capfile='./ctf_sentpkts.cap' ## directory and file name to save captured packets
 
 # Broadcast, broadcast, IPv6mcast, spanning tree, spanning tree, multicast, broadcast
 ignore = ['ff:ff:ff:ff:ff:ff', '00:00:00:00:00:00', '33:33:00:', '33:33:ff:', '01:80:c2:00:00:00', '01:00:5e:']
-
 
 def stoptimers(reason=0):
     global lcd
@@ -95,7 +101,7 @@ def PacketHandler(pkt):
         ret = sled.is_lit
         sled.blink(on_time=1,off_time=0.4,n=1)
 	logging.debug("Received Probe Request packet from station %s with payload: %s. Disarming bomb!" %(sta,ssid))
-	winner=sta
+	winner=sta.translate(None, ':')
 	timer.disarm_bomb()
         if ret: sled.on()
 
@@ -115,12 +121,20 @@ class Sniffer(Thread):  # Scapy sniffer thread
 
 class CheckTimer(Thread):
     def __init__(self):
+	global gpioctrl
         Thread.__init__(self)
         Thread.daemon = True
-        self.statusled = LED(gpioled)
-        self.arm = Button(gpioarm)
-        self.disarm = Button(gpiodisarm)
-	self.buzzer= Buzzer(gpiobuzzer)
+	if gpioctrl:
+	        self.statusled = LED(gpioled)
+	        self.arm = Button(gpioarm)
+	        self.disarm = Button(gpiodisarm)
+		self.buzzer= Buzzer(gpiobuzzer)
+	else:
+	        self.statusled = NOP()
+	        self.arm = NOP()
+	        self.disarm = NOP()
+		self.buzzer= NOP()
+	
 
     def run(self):
         if gpioarmnc:
@@ -175,30 +189,34 @@ class CheckTimer(Thread):
 	closeall(0,0)
 
     def arm_bomb(self):
-	explode = OutputDevice(gpioexplode, active_high=False)
-	explode2 = OutputDevice(gpioexplode2, active_high=False)
-	takephoto()
-	logging.debug("ARM button pressed! Arming bomb now!")
-	self.statusled.blink(on_time=0.05, off_time=0.05)
-	self.buzzer.source = self.statusled.values
+	if gpioctrl:
+	    explode = OutputDevice(gpioexplode, active_high=False)
+	    explode2 = OutputDevice(gpioexplode2, active_high=False)
+	    takephoto()
+	    logging.debug("ARM button pressed! Arming bomb now!")
+	    self.statusled.blink(on_time=0.05, off_time=0.05)
+	    self.buzzer.source = self.statusled.values
+	else:
+	    logging.debug("Arming bomb now!")
+
 	stoptimers(1)
-	time.sleep(2.5)
-	explode.on()
-	time.sleep(0.8)
-	explode2.on()
-	takephoto()
-	time.sleep(2)
-	takephoto()
-        explode.off()
-	time.sleep(1)
-        explode2.off()
-	takephoto()
+	if gpioctrl:
+	    time.sleep(2.5)
+	    explode.on()
+	    time.sleep(0.8)
+	    explode2.on()
+	    takephoto()
+	    time.sleep(2)
+	    takephoto()
+            explode.off()
+	    time.sleep(1)
+            explode2.off()
+	    takephoto()
 	closeall(0,0)
 
 def closeall(signal,frame):
     global closing
     closing = 1
-    print ''
     logging.debug('Ending execution!')
     sled.off()
     exit()
@@ -222,6 +240,13 @@ def oscheck():
         exit(1)
 
 
+def GetMAC(iface):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', iface[:15]))
+    mac = ''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1]
+    return mac
+
+
 def initmon(intfparent):
     global intfmon, ignore
     logging.debug("Wi-Fi nterface to use: %s" %intfparent)
@@ -242,6 +267,8 @@ def initmon(intfparent):
                 sys.exit(1)
         try:
             # create monitor interface using iw
+	    os.system('rfkill unblock wlan')
+            time.sleep(0.3)
             os.system("ifconfig %s down" % interface)
             time.sleep(0.3)
             os.system("iwconfig %s mode monitor" % interface)
@@ -256,7 +283,7 @@ def initmon(intfparent):
             os.kill(os.getpid(), SIGINT)
             sys.exit(1)
         # Get actual MAC addresses
-        macaddr1 = GetMAC(interface).upper()
+        macaddr1 = GetMAC(intfmon).upper()
         ignore.append(macaddr1)
         if verbose: logging.debug("Actual %s MAC Address: %s" % (interface, macaddr1))
         macaddr = GetMAC(intfmon).upper()
@@ -264,13 +291,6 @@ def initmon(intfparent):
             ignore.append(macaddr);
             if verbose:
                 logging.debug("Actual %s MAC Address: %s" % (intfmon, macaddr))
-
-
-def GetMAC(iface):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', iface[:15]))
-    mac = ''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1]
-    return mac
 
 
 def calc_freq(channel):
@@ -357,9 +377,7 @@ class Scapy80211():
             sendp(pkt, iface=self.intfmon, count=count, inter=0.100, verbose=0)
             if self.savecap:
                 try:
-                    writer = PcapWriter(capfile, append=True)
-                    writer.write(pkt)
-                    writer.close()
+		    wrpcap(capfile, pkt, append=True)
                 except:
                     self.savecap=0
             sled.off()
@@ -380,9 +398,7 @@ class Scapy80211():
             sendp(pkt, count=count, inter=0.1, verbose=0)
             if self.savecap:
                 try:
-                    writer = PcapWriter(capfile, append=True)
-                    writer.write(pkt)
-                    writer.close()
+		    wrpcap(capfile, pkt, append=True)
                 except:
                     self.savecap=0
             sled.off()
@@ -405,9 +421,7 @@ class Scapy80211():
             sendp(pkt, count=count, inter=0.1, verbose=0)
             if self.savecap:
                 try:
-                    writer = PcapWriter(capfile, append=True)
-                    writer.write(pkt)
-                    writer.close()
+		    wrpcap(capfile, pkt, append=True)
                 except:
                     self.savecap=0
             sled.off()
@@ -424,9 +438,7 @@ class Scapy80211():
         res = srp(pkt, iface=self.intfmon, count=count, timeout=2)
         if self.savecap:
             try:
-                writer = PcapWriter(capfile, append=True)
-                writer.write(pkt)
-                writer.close()
+	        wrpcap(capfile, pkt, append=True)
             except:
                 self.savecap=0
         sled.off()
@@ -447,9 +459,7 @@ class Scapy80211():
         res = srp(pkt, iface=self.intfmon, count=count, timeout=2)
         if self.savecap:
             try:
-                writer = PcapWriter(capfile, append=True)
-                writer.write(pkt)
-                writer.close()
+	        wrpcap(capfile, pkt, append=True)
             except:
                 self.savecap=0
         sled.off()
@@ -473,9 +483,7 @@ class Scapy80211():
         res = srp(pkt2, count=count, iface=self.intfmon, timeout=2)
         if self.savecap:
             try:
-                writer = PcapWriter(capfile, append=True)
-                writer.write(pkt)
-                writer.close()
+	        wrpcap(capfile, pkt, append=True)
             except:
                 self.savecap=0
         sled.off()
@@ -545,21 +553,21 @@ def executecommand(command, value):
                 lcd = subprocess.Popen(['./countdown', str(ctftime)], shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         elif command == "cnt":
             count = int(value)
-            if verbose >= 1: logging.debug('[%s] Changing number of packets to send to:%s' %(timeformat(timeleft()),str(count)))
+            if verbose >= 1: logging.debug('[%s] Setting number of packets to send to:%s' %(timeformat(timeleft()),str(count)))
         elif command == "sec":
             apsecurity = value
-            if verbose >= 1: logging.debug('[%s] Changing ap security to:%s' %(timeformat(timeleft()),apsecurity))
+            if verbose >= 1: logging.debug('[%s] Setting ap security to:%s' %(timeformat(timeleft()),apsecurity))
         elif command == "snf":
             disarmpayload = value
-            if verbose >= 1: logging.debug('[%s] Changing ProbeReq disarm payload to:%s' %(timeformat(timeleft()),disarmpayload))
+            if verbose >= 1: logging.debug('[%s] Setting ProbeReq disarm payload to:%s' %(timeformat(timeleft()),disarmpayload))
         elif command == "pay":
 	    if value[:3] == 'b64':
 		payload_plain = value[4:]
 		payload = base64.b64encode(bytes(payload_plain))
-                if verbose >= 1: logging.debug('[%s] Changing payload to %s base64(%s)' %(timeformat(timeleft()),payload,payload_plain))
+                if verbose >= 1: logging.debug('[%s] Setting payload to %s base64(%s)' %(timeformat(timeleft()),payload,payload_plain))
 	    else:
 		payload = value[4:]
-                if verbose >= 1: logging.debug('[%s] Changing plain payload to:%s' %(timeformat(timeleft()),payload))
+                if verbose >= 1: logging.debug('[%s] Setting plain payload to:%s' %(timeformat(timeleft()),payload))
         elif command == "gpo":
             gpioval = value.split('-')[0]
             gpiotime = value.split('-')[1]
@@ -579,15 +587,15 @@ def executecommand(command, value):
             if verbose >= 1: logging.debug('[%s] Settingg dst MAC to:%s' %(timeformat(timeleft()),dst))
         elif command == "bcn":
             ssid = value
-            logging.debug('[%s] Sending %d beacons with SSID:%s (%s) CHAN:%d (%s MHz) BSSID:%s' %(timeformat(timeleft()), count, ssid, apsecurity, channel, frequency, str(src).upper()))
+            logging.debug('[%s] Sending %d beacons with SSID:%s (%s) CHAN:%d (%s MHz) from BSSID:%s' %(timeformat(timeleft()), count, ssid, apsecurity, channel, frequency, str(src).upper()))
             sdot11.beacon(src, count, ssid, apsecurity,payload)
         elif command == "prb":
             ssid = value
-            logging.debug('[%s] Sending %d probe requests to SSID:%s CHAN:%d (%s MHz) from MAC:%s' %(timeformat(timeleft()), count, ssid, channel, frequency, dst.upper()))
+            logging.debug('[%s] Sending %d probe requests to SSID:%s CHAN:%d (%s MHz) to MAC:%s' %(timeformat(timeleft()), count, ssid, channel, frequency, dst.upper()))
             sdot11.probereq(src, count, ssid, dst, payload)
         elif command == "prr":
             ssid = value
-            logging.debug('[%s] Sending %d probe responses to MAC:%s  CHAN:%d (%s MHz) from BSSID:%s' %(timeformat(timeleft()), count, dst.upper(), channel, frequency, str(src).upper()))
+            logging.debug('[%s] Sending %d probe responses to MAC:%s  CHAN:%d (%s MHz) to BSSID:%s' %(timeformat(timeleft()), count, dst.upper(), channel, frequency, str(src).upper()))
             sdot11.proberesp(src, count, ssid, dst, payload)
         elif command == "ass":
             ssid = value
@@ -619,6 +627,7 @@ def timeformat(seconds):
     m, s = divmod(seconds, 60)
     h, m = divmod(m, 60)
     return "%d:%02d:%02d" % (h, m, s)
+
 
 # main routine
 if __name__ == "__main__":
@@ -671,13 +680,26 @@ if __name__ == "__main__":
                 imagedir = "./"
 
     # Start GPIOs
-    sled = LED(gpiosend)
-    flash = LED(gpioflash)
-    gpioext = LED(gpioext)
-    timer = CheckTimer()
-    timer.start()
+    if gpioctrl:
+	try:
+	    from gpiozero import LED,Button,Buzzer,OutputDevice
+	except Exception as e:
+	    logging.error("Cannot import gpiozero package! %s"  %e.message)
+	    gpioctrl=0
+	sled = LED(gpiosend)
+	flash = LED(gpioflash)
+	gpioext = LED(gpioext)
+	timer = CheckTimer()
+	timer.start()
 
-    # parse file: ctf.conf
+    if not gpioctrl:
+	sled = NOP()
+	flash = NOP()
+	gpioext = NOP()
+	timer = CheckTimer()
+	timer.start()
+
+    # parse file: ctf.conf to oneline separated by commas
     fpattern=''
     try:
 	ctfconf = open('ctf.conf', 'r')
@@ -685,28 +707,51 @@ if __name__ == "__main__":
 	    if not line.strip() or line[0:1] == "#":
 		continue
 	    else:
-		fpattern = fpattern + line.replace("\n", ",").strip()
+		fpattern = fpattern + line.replace("\n", "~,~").strip()
     except IOError:
 	logging.error('Cannot open ctf.conf file, exiting!')
         exit()
 
-    lpattern = fpattern.split(',')
+    # Create lpattern array   
+    lpattern = fpattern.split('~,~')
+
+    # Last command has to be rpt
+    if lpattern[-1][:3] != 'rpt':
+	lpattern.append('rpt(0)')
+
+    # Parse and remove ctf time to avoid repetitions
+    index = 0
+    for item in lpattern[:]:
+        command = item[:3]
+        value = item[3:].translate(None, '()')
+	if command == "ctf":
+            executecommand(command, value)
+	    lpattern.remove(item)
+    
     index1 = 0
     firstpass=1
-    lpattern1 = []
+    lpattern1 = []  
 
     try:
+	## Cycle through lpattern array
         while index1 < len(lpattern) and not closing:
             command = lpattern[index1][0:3]
             value = lpattern[index1][3:].translate(None, '()')
+
+	    ## Read commands until the end or until next repeat rpt
             if command == "rpt" or index1 == len(lpattern) - 1:
+
+		## At the end show message
                 if firstpass:
 		    firstpass=0
 	        else:
-		    if verbose >= 1: logging.debug('repeating loop %s times...' % value)
-                indice = int(value)
+		    if verbose >= 1: logging.debug('Repeating loop %s times...' % value)
+
+                indice = int(value)+1
                 loop = True
                 counter = 1
+
+		## Execute commands and repeat loops if necessary
                 while loop and not closing:
                     index = 0
                     while index < len(lpattern1):
@@ -720,8 +765,20 @@ if __name__ == "__main__":
                     if indice == 0: loop = True
                     counter += 1
             else:
-                lpattern1.append(command + '(' + value + ')')
+		## Append commands to provisional list to repeat (rpt) if necessary
+                if command != "rpt": 
+		    lpattern1.append(command + '(' + value + ')') 
             index1 += 1
+
+	tl = timeleft()
+        while timeleft() > -5 and not closing:
+            time.sleep(5)
+	    tl=timeleft()
+	    if tl > 5:
+		sys.stdout.write('\r'+"Time left: %s" %timeformat(tl))
+	    else:
+		sys.stdout.write('\r                                \n')
+	    sys.stdout.flush()
 
     except KeyboardInterrupt:
 	closeall(0,0)
