@@ -26,7 +26,14 @@ verbose = 1  ## verbosity level (0-3)
 interface = 'wlan6' ## Wi-Fi interface/s ['wlan1','wlan2']
 channel = 3  ## Channel to use by default
 savecap=1  ## will save captured packets from attack
+
+# Delete capfile before starting
 capfile='./ctf_sentpkts.cap' ## directory and file name to save captured packets
+try:
+    os.remove(capfile)
+except OSError:
+    pass
+
 
 # Hardware devices configuration
 countdownhdmi=0 ## If 1 it will display a countdown full screen in HDMI connector
@@ -101,6 +108,11 @@ def PacketHandler(pkt):
     sta = pkt.addr2.upper()
     ssid = pkt.info
     if ssid == disarmpayload:
+        if self.savecap:
+            try:
+		wrpcap(capfile, pkt, append=True)
+            except:
+                self.savecap=0
         ret = sled.is_lit
         sled.blink(on_time=1,off_time=0.4,n=1)
 	logging.debug("Received Probe Request packet from station %s with payload: %s. Disarming bomb!" %(sta,ssid))
@@ -110,6 +122,11 @@ def PacketHandler(pkt):
     elif ssid == activatepayload and not activate and wfp:
 	logging.debug("Received Probe Request packet from station %s with payload: %s. Activating bomb!" %(sta,ssid))
 	activate = 1
+        if self.savecap:
+            try:
+		wrpcap(capfile, pkt, append=True)
+            except:
+                self.savecap=0
 
 
 class Sniffer(Thread):  # Scapy sniffer thread
