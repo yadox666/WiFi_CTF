@@ -72,7 +72,6 @@ gpiodisarmnc = 1  ## Disarm mechanism Normally open (0) or normally closed (1)
 payload_ie = 221  ## 802.11 Element ID to include payload
 payload_preffix = 'CTF'  ## When using element ID 221 the first 3 bytes are for the manuf OUI
 closing = 0
-activate = 0
 wfp = 0
 intfmon=''
 winner=''
@@ -103,29 +102,29 @@ def stoptimers(reason=0):
 
 
 def PacketHandler(pkt):
-    global winner, activate, activatepayload, wfp, timer
+    global winner, activatepayload, wfp, timer, savecap
     sta = pkt.addr2.upper()
     ssid = pkt.info
     if ssid == disarmpayload:
-        if self.savecap:
+        if savecap:
             try:
 		wrpcap(capfile, pkt, append=True)
             except:
-                self.savecap=0
+                savecap=0
         ret = sled.is_lit
         sled.blink(on_time=1,off_time=0.4,n=1)
 	logging.debug("Received Probe Request packet from station %s with payload: %s. Disarming bomb!" %(sta,ssid))
 	winner=sta.translate(None, ':')
 	timer.disarm_bomb()
         if ret: sled.on()
-    elif ssid == activatepayload and not activate and wfp:
+    elif ssid == activatepayload and wfp:
 	logging.debug("Received Probe Request packet from station %s with payload: %s. Activating bomb!" %(sta,ssid))
-	activate = 1
-        if self.savecap:
+	wfp = 0
+        if savecap:
             try:
 		wrpcap(capfile, pkt, append=True)
             except:
-                self.savecap=0
+                savecap=0
 
 
 class Sniffer(Thread):  # Scapy sniffer thread
@@ -540,7 +539,7 @@ class Scapy80211():
 
 
 def executecommand(command, value):
-    global ctftime, ctfstart, count, src, dst, ssid, channel, apsecurity, payload, closing, disarmpayload, activate, wfp, activatepayload, lcd, timer
+    global ctftime, ctfstart, count, src, dst, ssid, channel, apsecurity, payload, closing, disarmpayload, wfp, activatepayload, lcd, timer
     try:
 	if closing:
 	    return
@@ -590,7 +589,7 @@ def executecommand(command, value):
 	    wfp = 1
             if verbose >= 1: logging.debug('[%s] Pause. Waiting for activation payload:%s' %(timeformat(timeleft()),activatepayload))
 	    elapsedtime = int(time.time())-ctfstart
-	    while not activate and not closing:
+	    while wfp and not closing:
                 ctfstart=int(time.time())-elapsedtime
                 time.sleep(1)
         elif command == "pay":
@@ -652,6 +651,7 @@ def executecommand(command, value):
         logging.error('Cannot parse command. %s' %e.message)
 
 def timeleft():
+    global ctftime,ctfstart
     elapsedtime = int(time.time())-ctfstart
     timeleft = ctftime - elapsedtime
     return timeleft
@@ -732,7 +732,7 @@ if __name__ == "__main__":
     try:
 	ctfconf = open('ctf.conf', 'r')
         for line in ctfconf.readlines():
-	    if not line.strip() or line[0:1] == "#":
+	    if line.strip() == '' or line[0:1] == "#":
 		continue
 	    else:
 		fpattern = fpattern + line.replace("\n", "~,~").strip()
@@ -740,7 +740,8 @@ if __name__ == "__main__":
 	logging.error('Cannot open ctf.conf file, exiting!')
         exit()
 
-    # Create lpattern array   
+    # Create lpattern array
+    fpattern = fpattern[:-3]  ## remove last empty array
     lpattern = fpattern.split('~,~')
 
     # Last command has to be rpt
@@ -778,7 +779,7 @@ if __name__ == "__main__":
                 if firstpass:
 		    firstpass=0
 	        else:
-		    if verbose >= 1: logging.debug('Repeating loop %s times...' % value)
+		    if verbose >= 1: logging.debug('Repeating last loop %s times...' % value)
 
                 indice = int(value)+1
                 loop = True
@@ -797,13 +798,15 @@ if __name__ == "__main__":
                         loop = False
                     if indice == 0: loop = True
                     counter += 1
+		    while wfp:
+			sleep(1)
             else:
 		## Append commands to provisional list to repeat (rpt) if necessary
                 if command != "rpt": 
 		    lpattern1.append(command + '(' + value + ')') 
             index1 += 1
 
-	print ''
+	print "\n\n"
 	tl = timeleft()
         while timeleft() > -5 and not closing:
             time.sleep(5)
