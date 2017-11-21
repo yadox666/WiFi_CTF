@@ -54,7 +54,6 @@ gpioext = 11  ## GPIO port number to external peripheral
 gpiobuzzer = 18  ## GPIO port number for a buzzer
 
 # Default system variables
-ctftime=3600  ## Default CTF duration in seconds
 disarmpayload='DisarmITn0w!!!'  ## Disarm the bomb sending various Probe Request packets with this SSID
 activatepayload='HelloBomb!'  ## Disarm the bomb sending various Probe Request packets with this SSID
 apsecurity = 'OPEN'  ## open, wep, wpa, wpa2
@@ -77,8 +76,8 @@ activate = 0
 wfp = 0
 intfmon=''
 winner=''
-ctfstart=int(time.time())
 lcd = None
+timer = None
 
 # Broadcast, broadcast, IPv6mcast, spanning tree, spanning tree, multicast, broadcast
 ignore = ['ff:ff:ff:ff:ff:ff', '00:00:00:00:00:00', '33:33:00:', '33:33:ff:', '01:80:c2:00:00:00', '01:00:5e:']
@@ -104,7 +103,7 @@ def stoptimers(reason=0):
 
 
 def PacketHandler(pkt):
-    global winner, activate, activatepayload, wfp
+    global winner, activate, activatepayload, wfp, timer
     sta = pkt.addr2.upper()
     ssid = pkt.info
     if ssid == disarmpayload:
@@ -157,7 +156,6 @@ class CheckTimer(Thread):
 	        self.arm = NOP()
 	        self.disarm = NOP()
 		self.buzzer= NOP()
-	
 
     def run(self):
         if gpioarmnc:
@@ -170,7 +168,7 @@ class CheckTimer(Thread):
         else:
 	    self.disarm.when_pressed = self.disarm_bomb
 
-	self.timercheck()
+        self.timercheck()
 
     def timercheck(self):
 	ledexec=1
@@ -180,6 +178,7 @@ class CheckTimer(Thread):
         while not closing:
 	    elapsedtime = int(time.time())-ctfstart
 	    percent=float(elapsedtime)/ctftime*100
+
             if timeleft() < 1:
                 logging.debug("CTF finished! Time left: %s" %timeformat(timeleft()))
 		self.arm_bomb()
@@ -236,6 +235,7 @@ class CheckTimer(Thread):
             explode2.off()
 	    takephoto()
 	closeall(0,0)
+
 
 def closeall(signal,frame):
     global closing
@@ -540,7 +540,7 @@ class Scapy80211():
 
 
 def executecommand(command, value):
-    global ctftime, ctfstart, count, src, dst, ssid, channel, apsecurity, payload, closing, disarmpayload, activate, wfp, activatepayload, lcd
+    global ctftime, ctfstart, count, src, dst, ssid, channel, apsecurity, payload, closing, disarmpayload, activate, wfp, activatepayload, lcd, timer
     try:
 	if closing:
 	    return
@@ -556,11 +556,13 @@ def executecommand(command, value):
 	    for i in range(wait): time.sleep(1)
             sys.stdout.write("\033[F")  # Cursor up one line
         elif command == "ctf":
-            ctftime = int(value)
-            if verbose >= 1: logging.debug("Fixing CTF duration to: %s" %(timeformat(ctftime)))
     	    # Start timers
     	    logging.debug("Starting CTF execution at: %s" % datetime.now())
             ctfstart=int(time.time())
+            ctftime = int(value)
+	    timer = CheckTimer()
+	    timer.start()
+            if verbose >= 1: logging.debug("Fixing CTF duration to: %s" %(timeformat(ctftime)))
     	    # Start countdown screen and LCD
     	    if countdownhdmi:
                 logging.debug("Starting HDMI countdown timer: %s" %timeformat(timeleft()))
@@ -586,9 +588,11 @@ def executecommand(command, value):
         elif command == "wfp":
             activatepayload = value
 	    wfp = 1
-            if verbose >= 1: logging.debug('[%s] Waiting for activation payload:%s' %(timeformat(timeleft()),activatepayload))
+            if verbose >= 1: logging.debug('[%s] Pause. Waiting for activation payload:%s' %(timeformat(timeleft()),activatepayload))
+	    elapsedtime = int(time.time())-ctfstart
 	    while not activate and not closing:
-                time.sleep(3)
+                ctfstart=int(time.time())-elapsedtime
+                time.sleep(1)
         elif command == "pay":
 	    if value[:3] == 'b64':
 		payload_plain = value[4:]
@@ -718,15 +722,10 @@ if __name__ == "__main__":
 	sled = LED(gpiosend)
 	flash = LED(gpioflash)
 	gpioext = LED(gpioext)
-	timer = CheckTimer()
-	timer.start()
-
-    if not gpioctrl:
+    if not gpioctrl: # cannot be an else statement
 	sled = NOP()
 	flash = NOP()
 	gpioext = NOP()
-	timer = CheckTimer()
-	timer.start()
 
     # parse file: ctf.conf to oneline separated by commas
     fpattern=''
@@ -750,16 +749,21 @@ if __name__ == "__main__":
 
     # Parse and remove ctf time to avoid repetitions
     index = 0
+    ctf_found = 0
     for item in lpattern[:]:
         command = item[:3]
         value = item[3:].translate(None, '()')
 	if command == "ctf":
             executecommand(command, value)
 	    lpattern.remove(item)
-    
+	    ctf_found = 1
     index1 = 0
     firstpass=1
     lpattern1 = []  
+
+    if not ctf_found:
+	logging.error('CTF duration not defined by ctf command in ctf.conf file, exiting!')
+	exit()
 
     try:
 	## Cycle through lpattern array
@@ -799,7 +803,7 @@ if __name__ == "__main__":
 		    lpattern1.append(command + '(' + value + ')') 
             index1 += 1
 
-	print
+	print ''
 	tl = timeleft()
         while timeleft() > -5 and not closing:
             time.sleep(5)
